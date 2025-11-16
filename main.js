@@ -225,6 +225,14 @@ app.put('/inventory/:id/photo', upload.single('photo'), (req, res) => {
   });
 });
 
+app.all('/RegisterForm.html', methodGuard(['GET']));
+app.get('/RegisterForm.html', (req, res) => {
+  const filePath = path.join(__dirname, 'RegisterForm.html');
+  res.status(200);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.sendFile(filePath);
+});
+
 app.use((req, res) => {
   res.status(404).send('Not found');
 });
