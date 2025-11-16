@@ -115,7 +115,7 @@ app.get('/inventory', (req, res) => {
   res.status(200).json(list);
 });
 
-app.all('/inventory/:id', methodGuard(['GET', 'PUT']));
+app.all('/inventory/:id', methodGuard(['GET', 'PUT', 'DELETE']));
 app.get('/inventory/:id', (req, res) => {
   const item = inventory.find((i) => i.id === req.params.id);
   if (!item) {
@@ -161,6 +161,24 @@ app.put('/inventory/:id', (req, res) => {
     description: item.description,
     photo_url: photoUrl
   });
+});
+
+app.delete('/inventory/:id', (req, res) => {
+  const index = inventory.findIndex((i) => i.id === req.params.id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const [removed] = inventory.splice(index, 1);
+
+  if (removed.photoFilename) {
+    const photoPath = path.join(PHOTOS_DIR, removed.photoFilename);
+    fs.promises.unlink(photoPath).catch(() => {});
+  }
+
+  saveInventory(inventory);
+
+  res.status(200).json({ message: 'Deleted' });
 });
 
 app.all('/inventory/:id/photo', methodGuard(['GET', 'PUT']));
