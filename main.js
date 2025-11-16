@@ -163,7 +163,7 @@ app.put('/inventory/:id', (req, res) => {
   });
 });
 
-app.all('/inventory/:id/photo', methodGuard(['GET']));
+app.all('/inventory/:id/photo', methodGuard(['GET', 'PUT']));
 app.get('/inventory/:id/photo', (req, res) => {
   const item = inventory.find((i) => i.id === req.params.id);
   if (!item || !item.photoFilename) {
@@ -178,6 +178,33 @@ app.get('/inventory/:id/photo', (req, res) => {
   res.status(200);
   res.setHeader('Content-Type', 'image/jpeg');
   res.sendFile(photoPath);
+});
+
+app.put('/inventory/:id/photo', upload.single('photo'), (req, res) => {
+  const item = inventory.find((i) => i.id === req.params.id);
+  if (!item) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'photo file is required' });
+  }
+
+  if (item.photoFilename) {
+    const oldPath = path.join(PHOTOS_DIR, item.photoFilename);
+    fs.promises.unlink(oldPath).catch(() => {});
+  }
+
+  item.photoFilename = req.file.filename;
+  saveInventory(inventory);
+
+  const photoUrl = `${req.protocol}://${req.get('host')}/inventory/${item.id}/photo`;
+
+  res.status(200).json({
+    id: item.id,
+    photo_url: photoUrl,
+    message: 'Photo updated'
+  });
 });
 
 app.use((req, res) => {
