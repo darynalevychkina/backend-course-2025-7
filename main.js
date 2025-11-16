@@ -97,6 +97,24 @@ app.post('/register', upload.single('photo'), (req, res) => {
   });
 });
 
+app.all('/inventory', methodGuard(['GET']));
+app.get('/inventory', (req, res) => {
+  const list = inventory.map((item) => {
+    const photoUrl = item.photoFilename
+      ? `${req.protocol}://${req.get('host')}/inventory/${item.id}/photo`
+      : null;
+
+    return {
+      id: item.id,
+      inventory_name: item.inventory_name,
+      description: item.description,
+      photo_url: photoUrl
+    };
+  });
+
+  res.status(200).json(list);
+});
+
 app.use((req, res) => {
   res.status(404).send('Not found');
 });
