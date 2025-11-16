@@ -233,6 +233,14 @@ app.get('/RegisterForm.html', (req, res) => {
   res.sendFile(filePath);
 });
 
+app.all('/SearchForm.html', methodGuard(['GET']));
+app.get('/SearchForm.html', (req, res) => {
+  const filePath = path.join(__dirname, 'SearchForm.html');
+  res.status(200);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.sendFile(filePath);
+});
+
 app.use((req, res) => {
   res.status(404).send('Not found');
 });
