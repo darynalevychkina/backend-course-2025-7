@@ -1,6 +1,8 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
+const multer = require('multer');
 const { Command } = require('commander');
 
 const program = new Command();
@@ -16,17 +18,90 @@ const options = program.opts();
 const HOST = options.host;
 const PORT = options.port;
 const CACHE_DIR = path.resolve(options.cache);
+const PHOTOS_DIR = path.join(CACHE_DIR, 'photos');
+const DB_FILE = path.join(CACHE_DIR, 'inventory.json');
 
 if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
-  console.log(`Created cache directory: ${CACHE_DIR}`);
+}
+if (!fs.existsSync(PHOTOS_DIR)) {
+  fs.mkdirSync(PHOTOS_DIR, { recursive: true });
 }
 
-const server = http.createServer((req, res) => {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.end('Inventory service is running\n');
+function loadInventory() {
+  try {
+    const data = fs.readFileSync(DB_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+function saveInventory(items) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(items, null, 2), 'utf8');
+}
+
+let inventory = loadInventory();
+
+function generateId() {
+  const maxId = inventory.reduce((max, item) => Math.max(max, Number(item.id)), 0);
+  return String(maxId + 1);
+}
+
+const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+const upload = multer({ dest: PHOTOS_DIR });
+
+function methodGuard(allowed) {
+  return (req, res, next) => {
+    if (!allowed.includes(req.method)) {
+      return res.status(405).send('Method not allowed');
+    }
+    next();
+  };
+}
+
+app.all('/register', methodGuard(['POST']));
+app.post('/register', upload.single('photo'), (req, res) => {
+  const { inventory_name, description } = req.body;
+
+  if (!inventory_name || inventory_name.trim() === '') {
+    return res.status(400).json({ error: 'inventory_name is required' });
+  }
+
+  const id = generateId();
+  const photoFilename = req.file ? req.file.filename : null;
+
+  const item = {
+    id,
+    inventory_name,
+    description: description || '',
+    photoFilename
+  };
+
+  inventory.push(item);
+  saveInventory(inventory);
+
+  const photoUrl = photoFilename
+    ? `${req.protocol}://${req.get('host')}/inventory/${id}/photo`
+    : null;
+
+  return res.status(201).json({
+    id,
+    inventory_name: item.inventory_name,
+    description: item.description,
+    photo_url: photoUrl
+  });
 });
+
+app.use((req, res) => {
+  res.status(404).send('Not found');
+});
+
+const server = http.createServer(app);
 
 server.listen(PORT, HOST, () => {
   console.log(`Server running at http://${HOST}:${PORT}/`);
