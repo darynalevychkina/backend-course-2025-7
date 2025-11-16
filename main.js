@@ -241,6 +241,35 @@ app.get('/SearchForm.html', (req, res) => {
   res.sendFile(filePath);
 });
 
+app.all('/search', methodGuard(['POST']));
+app.post('/search', (req, res) => {
+  const { id, has_photo } = req.body;
+
+  const item = inventory.find((i) => i.id === id);
+  if (!item) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const photoUrl = item.photoFilename
+    ? `${req.protocol}://${req.get('host')}/inventory/${item.id}/photo`
+    : null;
+
+  let description = item.description;
+
+  if (has_photo && photoUrl) {
+    description = `${description}\nPhoto: ${photoUrl}`;
+    item.description = description;
+    saveInventory(inventory);
+  }
+
+  res.status(200).json({
+    id: item.id,
+    inventory_name: item.inventory_name,
+    description,
+    photo_url: photoUrl
+  });
+});
+
 app.use((req, res) => {
   res.status(404).send('Not found');
 });
