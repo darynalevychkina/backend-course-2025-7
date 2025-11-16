@@ -4,6 +4,8 @@ const path = require('path');
 const express = require('express');
 const multer = require('multer');
 const { Command } = require('commander');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 
 const program = new Command();
 
@@ -54,6 +56,209 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 const upload = multer({ dest: PHOTOS_DIR });
+
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Inventory Service API',
+      version: '1.0.0',
+      description: 'Simple inventory service for Lab 6'
+    },
+    servers: [
+      {
+        url: `http://${HOST}:${PORT}`
+      }
+    ],
+    paths: {
+      '/register': {
+        post: {
+          summary: 'Register a new inventory item',
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    inventory_name: { type: 'string', description: 'Item name (required)' },
+                    description: { type: 'string', description: 'Item description' },
+                    photo: { type: 'string', format: 'binary', description: 'Item photo file' }
+                  },
+                  required: ['inventory_name']
+                }
+              }
+            }
+          },
+          responses: {
+            201: { description: 'Inventory item created' },
+            400: { description: 'Inventory name is missing' }
+          }
+        }
+      },
+      '/inventory': {
+        get: {
+          summary: 'Get all inventory items',
+          responses: {
+            200: { description: 'List of all inventory items in JSON format' }
+          }
+        }
+      },
+      '/inventory/{id}': {
+        get: {
+          summary: 'Get inventory item by ID',
+          parameters: [
+            {
+              in: 'path',
+              name: 'id',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Inventory item ID'
+            }
+          ],
+          responses: {
+            200: { description: 'Inventory item found' },
+            404: { description: 'Inventory item not found' }
+          }
+        },
+        put: {
+          summary: 'Update inventory item name and/or description',
+          parameters: [
+            {
+              in: 'path',
+              name: 'id',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Inventory item ID'
+            }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    inventory_name: { type: 'string', description: 'New item name' },
+                    description: { type: 'string', description: 'New item description' }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            200: { description: 'Inventory item updated' },
+            404: { description: 'Inventory item not found' }
+          }
+        },
+        delete: {
+          summary: 'Delete inventory item by ID',
+          parameters: [
+            {
+              in: 'path',
+              name: 'id',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Inventory item ID'
+            }
+          ],
+          responses: {
+            200: { description: 'Inventory item deleted' },
+            404: { description: 'Inventory item not found' }
+          }
+        }
+      },
+      '/inventory/{id}/photo': {
+        get: {
+          summary: 'Get inventory item photo',
+          parameters: [
+            {
+              in: 'path',
+              name: 'id',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Inventory item ID'
+            }
+          ],
+          responses: {
+            200: { description: 'JPEG image with item photo' },
+            404: { description: 'Item or photo not found' }
+          }
+        },
+        put: {
+          summary: 'Update inventory item photo',
+          parameters: [
+            {
+              in: 'path',
+              name: 'id',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Inventory item ID'
+            }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    photo: {
+                      type: 'string',
+                      format: 'binary',
+                      description: 'New photo file for the item'
+                    }
+                  },
+                  required: ['photo']
+                }
+              }
+            }
+          },
+          responses: {
+            200: { description: 'Item photo updated' },
+            400: { description: 'Photo file is missing' },
+            404: { description: 'Inventory item not found' }
+          }
+        }
+      },
+      '/search': {
+        post: {
+          summary: 'Search inventory item by ID (form submission)',
+          requestBody: {
+            required: true,
+            content: {
+              'application/x-www-form-urlencoded': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      description: 'Inventory item ID to search'
+                    },
+                    has_photo: {
+                      type: 'string',
+                      description:
+                        'If present, append photo URL to item description when photo exists'
+                    }
+                  },
+                  required: ['id']
+                }
+              }
+            }
+          },
+          responses: {
+            200: { description: 'Inventory item found and returned' },
+            404: { description: 'Inventory item not found' }
+          }
+        }
+      }
+    }
+  },
+  apis: []
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 function methodGuard(allowed) {
   return (req, res, next) => {
