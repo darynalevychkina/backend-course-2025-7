@@ -115,6 +115,25 @@ app.get('/inventory', (req, res) => {
   res.status(200).json(list);
 });
 
+app.all('/inventory/:id', methodGuard(['GET']));
+app.get('/inventory/:id', (req, res) => {
+  const item = inventory.find((i) => i.id === req.params.id);
+  if (!item) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const photoUrl = item.photoFilename
+    ? `${req.protocol}://${req.get('host')}/inventory/${item.id}/photo`
+    : null;
+
+  res.status(200).json({
+    id: item.id,
+    inventory_name: item.inventory_name,
+    description: item.description,
+    photo_url: photoUrl
+  });
+});
+
 app.use((req, res) => {
   res.status(404).send('Not found');
 });
