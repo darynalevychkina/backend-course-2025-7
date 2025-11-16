@@ -163,6 +163,23 @@ app.put('/inventory/:id', (req, res) => {
   });
 });
 
+app.all('/inventory/:id/photo', methodGuard(['GET']));
+app.get('/inventory/:id/photo', (req, res) => {
+  const item = inventory.find((i) => i.id === req.params.id);
+  if (!item || !item.photoFilename) {
+    return res.status(404).send('Not found');
+  }
+
+  const photoPath = path.join(PHOTOS_DIR, item.photoFilename);
+  if (!fs.existsSync(photoPath)) {
+    return res.status(404).send('Not found');
+  }
+
+  res.status(200);
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.sendFile(photoPath);
+});
+
 app.use((req, res) => {
   res.status(404).send('Not found');
 });
