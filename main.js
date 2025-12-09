@@ -1,3 +1,5 @@
+require('dotenv').config(); 
+
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
@@ -6,11 +8,22 @@ const { Command } = require('commander');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 
+const DEFAULT_HOST = process.env.HOST || '0.0.0.0';
+const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 3000;
+const DEFAULT_CACHE_DIR = process.env.CACHE_DIR || path.resolve('cache');
+
 const program = new Command();
+
 program
-  .requiredOption('-h, --host <host>', 'Server host')
-  .requiredOption('-p, --port <port>', 'Server port', (v) => parseInt(v, 10))
-  .requiredOption('-c, --cache <dir>', 'Cache directory');
+  .option('-h, --host <host>', 'Server host', DEFAULT_HOST)
+  .option(
+    '-p, --port <port>',
+    'Server port',
+    (v) => parseInt(v, 10),
+    DEFAULT_PORT
+  )
+  .option('-c, --cache <dir>', 'Cache directory', DEFAULT_CACHE_DIR);
+
 program.parse(process.argv);
 
 const { host: HOST, port: PORT, cache } = program.opts();
@@ -51,7 +64,7 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Simple inventory service for Lab 6'
     },
-    servers: [{ url: `http://${HOST}:${PORT}` }],
+      servers: [{ url: `http://localhost:${PORT}` }],
     paths: {
       '/register': {
         post: {

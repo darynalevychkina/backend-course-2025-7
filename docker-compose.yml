@@ -1,0 +1,24 @@
+services:
+  app:
+    build: .
+    container_name: backend-course-2025-7-app
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    volumes:
+      - .:/usr/src/app   
+      - cache_data:/cache
+
+  db:
+    image: postgres:16-alpine
+    ...
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+volumes:
+  db_data:
+  cache_data:
