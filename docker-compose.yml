@@ -9,16 +9,5 @@ services:
     depends_on:
       - db
     volumes:
-      - .:/usr/src/app   
+      - .:/usr/src/app     
       - cache_data:/cache
-
-  db:
-    image: postgres:16-alpine
-    ...
-    volumes:
-      - db_data:/var/lib/postgresql/data
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-
-volumes:
-  db_data:
-  cache_data:
